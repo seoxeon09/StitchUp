@@ -2,7 +2,7 @@ import './App.css';
 
 const Login = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-purple-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
         <form>
