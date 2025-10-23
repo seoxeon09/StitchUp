@@ -1,6 +1,7 @@
-const StartText = () => {
+const StartText = ({ className }: { className?: string }) => {
   return (
     <svg
+      className={className}
       width="192"
       height="141"
       viewBox="0 0 192 141"
