@@ -1,6 +1,6 @@
 import React from 'react';
-import { Circle, Coin } from '../assets'; // assets 안에 Circle.tsx, Coin.tsx 가 있다고 가정
-
+import { Coin } from '../../assets/Coin'; // assets 안에 Circle.tsx, Coin.tsx 가 있다고 가정
+import CircleImg from 'assets/Circle.png';
 const StepsPage = () => {
   const steps = 20000;
   const coins = 65200;
@@ -16,7 +16,7 @@ const StepsPage = () => {
 
       {/* 걸음 수 원형 */}
       <div className="flex justify-center items-center mt-12">
-        <Circle steps={steps} className="w-64 h-64" />
+        <img src={CircleImg} alt="Start" className="w-full h-auto" />
       </div>
 
       {/* AI 코멘트 박스 */}
