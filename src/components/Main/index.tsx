@@ -138,7 +138,7 @@ const StepsPage: React.FC = () => {
     const checkInterval = 30 * 1000;
     const interval = setInterval(() => {
       const now = Date.now();
-      if (now - lastAiRequestTime.current > 5 * 60 * 1000) {
+      if (now - lastAiRequestTime.current > 3 * 60 * 1000) {
         requestAiComment(steps);
         lastAiRequestTime.current = now;
       }
