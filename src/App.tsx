@@ -1,16 +1,31 @@
-import { BrowserRouter as Router, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from 'react-router-dom';
 import { Footer } from './components';
+import Main from './components/Main';
 
-const Layout = () => {
+const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
-  return <>{location.pathname !== '/' && <Footer />}</>;
+  return (
+    <>
+      {children}
+      {location.pathname !== '/' && <Footer />}
+    </>
+  );
 };
 
 const App = () => {
   return (
     <Router>
-      <Layout />
+      <Layout>
+        <Routes>
+          <Route path="/main" element={<Main />} />
+        </Routes>
+      </Layout>
     </Router>
   );
 };
