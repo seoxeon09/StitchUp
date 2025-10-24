@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
-interface ImportMetaEnv {
-  readonly VITE_AI_API_KEY: string;
-}
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+/// <reference types="react-scripts" />
+
+declare namespace NodeJS {
+  interface ProcessEnv {
+    readonly REACT_APP_AI_API_KEY: string;
+  }
 }
