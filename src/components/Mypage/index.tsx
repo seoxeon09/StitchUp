@@ -46,7 +46,7 @@ const Mypage = () => {
   };
 
   const goToShop = () => {
-    navigate('/shop', { state: { coins } }); // 현재 coins 전달
+    navigate('/shop', { state: { coins } });
   };
 
   return (

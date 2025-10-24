@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import PizzaImg from '../../assets/Pizza.png';
 import ChickenImg from '../../assets/Chicken.png';
@@ -10,19 +10,36 @@ import IcecreamImg from '../../assets/Icecream.png';
 
 const Store = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const coins = location.state?.coins ?? 0;
 
   const items = [
-    { name: 'Pizza', src: PizzaImg, amount: 5 },
-    { name: 'Chicken', src: ChickenImg, amount: 5 },
-    { name: 'Salad', src: SaladImg, amount: 5 },
-    { name: 'Bread', src: BreadImg, amount: 5 },
-    { name: 'Lollipop', src: LollipopImg, amount: 5 },
-    { name: 'Icecream', src: IcecreamImg, amount: 5 },
+    { name: 'Pizza', src: PizzaImg, amount: 5, price: 300 },
+    { name: 'Chicken', src: ChickenImg, amount: 5, price: 300 },
+    { name: 'Salad', src: SaladImg, amount: 5, price: 300 },
+    { name: 'Bread', src: BreadImg, amount: 5, price: 300 },
+    { name: 'Lollipop', src: LollipopImg, amount: 5, price: 300 },
+    { name: 'Icecream', src: IcecreamImg, amount: 5, price: 300 },
   ];
 
-  const handleBuy = (amount: number) => {
-    alert(`밥 ${amount}개 구매 완료!`);
-    navigate('/mypage', { state: { addedFood: amount } });
+  const handleBuy = (item: { amount: number; price: number }) => {
+    const totalCost = item.amount * item.price;
+
+    if (coins < totalCost) {
+      alert('포인트가 부족합니다!');
+      return;
+    }
+
+    const remainingCoins = coins - totalCost;
+    alert(`밥 ${item.amount}개 구매 완료! 포인트 ${totalCost} 차감`);
+
+    navigate('/mypage', {
+      state: {
+        addedFood: item.amount,
+        coins: remainingCoins,
+      },
+    });
   };
 
   return (
@@ -37,10 +54,10 @@ const Store = () => {
           >
             <img src={item.src} alt={item.name} className="w-16 h-16 mb-3" />
             <button
-              onClick={() => handleBuy(item.amount)}
+              onClick={() => handleBuy(item)}
               className="w-full py-2 bg-blue-400 text-white rounded-lg font-bold active:scale-95 transition"
             >
-              BUY
+              BUY {item.price}P
             </button>
           </div>
         ))}
@@ -52,6 +69,8 @@ const Store = () => {
       >
         돌아가기
       </button>
+
+      <div className="mt-4 text-gray-500 text-sm">현재 포인트: {coins}</div>
     </div>
   );
 };
