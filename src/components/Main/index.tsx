@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Coin from '../../assets/Coin';
 import CircleImg from 'assets/Circle.png';
 
@@ -7,7 +7,8 @@ const StepsPage = () => {
   const [coins, setCoins] = useState(0);
   const [aiComment, setAiComment] = useState('');
 
-  let lastAiRequestTime = 0;
+  const lastAiRequestTime = useRef(0); // 마지막 AI 요청 시간
+  const apiKey = import.meta.env.VITE_AI_API_KEY; // .env에서 API 키 가져오기
 
   const connectSerial = async () => {
     try {
@@ -15,7 +16,7 @@ const StepsPage = () => {
       await port.open({ baudRate: 115200 });
 
       const decoder = new TextDecoderStream();
-      const readableStreamClosed = port.readable.pipeTo(decoder.writable);
+      port.readable.pipeTo(decoder.writable);
       const reader = decoder.readable.getReader();
 
       while (true) {
@@ -23,25 +24,14 @@ const StepsPage = () => {
         if (done) break;
         if (value) {
           const trimmed = value.trim();
-
           if (/^\d+$/.test(trimmed)) {
             const increment = parseInt(trimmed);
 
             setSteps((prev) => {
               const newTotal = prev + increment;
-              setCoins(newTotal * 3); // 코인도 누적 반영
+              setCoins(newTotal * 3); // 코인 누적 반영
               return newTotal;
             });
-
-            // AI 요청: 2시간마다
-            const now = Date.now();
-            if (now - lastAiRequestTime > 2 * 60 * 60 * 1000) {
-              setSteps((prev) => {
-                requestAiComment(prev);
-                lastAiRequestTime = now;
-                return prev;
-              });
-            }
           }
         }
       }
@@ -50,13 +40,21 @@ const StepsPage = () => {
     }
   };
 
-  const requestAiComment = async (steps: number) => {
+  const requestAiComment = async (currentSteps: number) => {
     try {
-      const response = await fetch('http://localhost:3001/ai-comment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ steps }),
-      });
+      const response = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        {
+          // 실제 AI API URL로 변경
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({ steps: currentSteps }),
+        }
+      );
+
       const data = await response.json();
       setAiComment(data.comment);
     } catch (err) {
@@ -65,10 +63,22 @@ const StepsPage = () => {
     }
   };
 
+  // 5분마다 AI 요청 체크
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (now - lastAiRequestTime.current > 5 * 60 * 1000) {
+        // 5분
+        requestAiComment(steps);
+        lastAiRequestTime.current = now;
+      }
+    }, 1000 * 30); // 30초마다 체크
+    return () => clearInterval(interval);
+  }, [steps]);
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-white">
-      {/* 고정된 390px 레이아웃 */}
-      <div className="w-[390px] min-h-screen bg-white flex flex-col items-center p-4 s">
+      <div className="w-[390px] min-h-screen bg-white flex flex-col items-center p-4">
         <button
           onClick={connectSerial}
           className="self-end mb-4 px-4 py-2 bg-blue-500 text-white rounded"
