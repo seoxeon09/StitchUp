@@ -1,1 +1,1 @@
-export { default as StartText } from './StartText';
+export { default as StartText } from './StartText.js';
