@@ -4,7 +4,7 @@ import {
   Route,
   useLocation,
 } from 'react-router-dom';
-import { Footer } from './components';
+import { Start, Footer } from './components';
 import Main from './components/Main';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -23,6 +23,7 @@ const App = () => {
     <Router>
       <Layout>
         <Routes>
+          <Route path="/" element={<Start />} />
           <Route path="/main" element={<Main />} />
         </Routes>
       </Layout>
