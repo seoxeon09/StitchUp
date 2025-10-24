@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Coin from '../../assets/Coin';
 import CircleImg from 'assets/Circle.png';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const StepsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [steps, setSteps] = useState<number>(0);
-  const [coins, setCoins] = useState<number>(0);
+  const [coins, setCoins] = useState<number>(location.state?.coins || 0);
   const [aiComment, setAiComment] = useState<string>('');
-
   const lastAiRequestTime = useRef<number>(0);
   const apiKey = process.env.REACT_APP_AI_API_KEY;
-
   const portRef = useRef<any | null>(null);
   const readerRef = useRef<any | null>(null);
   const mountedRef = useRef(true);
@@ -41,7 +42,6 @@ const StepsPage: React.FC = () => {
       });
       return;
     }
-
     let i = 0;
     const stepDelay = 60;
     const timer = setInterval(() => {
@@ -66,24 +66,18 @@ const StepsPage: React.FC = () => {
       const port = await (navigator as any).serial.requestPort();
       portRef.current = port;
       await port.open({ baudRate: 115200 });
-
       const decoder = new TextDecoderStream();
       port.readable.pipeTo(decoder.writable);
       const reader = decoder.readable.getReader();
       readerRef.current = reader;
-
       while (mountedRef.current) {
         const { value, done } = await reader.read();
         if (done) break;
         if (!value) continue;
-
         const trimmed = String(value).trim();
-
         console.log('[Serial] received:', trimmed);
-
         if (/^\d+$/.test(trimmed)) {
           const increment = parseInt(trimmed, 10);
-
           smoothIncrease(increment);
         } else {
           console.log('[Serial] non-numeric message:', trimmed);
@@ -100,10 +94,8 @@ const StepsPage: React.FC = () => {
       setAiComment('AI 키가 설정되지 않았습니다.');
       return;
     }
-
     try {
       const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
       const body = {
         contents: [
           {
@@ -115,7 +107,6 @@ const StepsPage: React.FC = () => {
           },
         ],
       };
-
       const resp = await fetch(url, {
         method: 'POST',
         headers: {
@@ -123,23 +114,19 @@ const StepsPage: React.FC = () => {
         },
         body: JSON.stringify(body),
       });
-
       if (!resp.ok) {
         const text = await resp.text().catch(() => '');
         console.error('AI API 응답 에러:', resp.status, text);
         setAiComment(`AI 요청 실패: ${resp.status}`);
         return;
       }
-
       const data = await resp.json();
       console.log('AI 응답 전체:', data);
-
       const comment =
         data?.candidates?.[0]?.content?.parts?.[0]?.text ||
         data?.candidates?.[0]?.content?.[0]?.text ||
         data?.output?.[0]?.content?.[0]?.text ||
         'AI 코멘트가 없습니다.';
-
       setAiComment(comment);
     } catch (err) {
       console.error('AI request error:', err);
@@ -156,9 +143,12 @@ const StepsPage: React.FC = () => {
         lastAiRequestTime.current = now;
       }
     }, checkInterval);
-
     return () => clearInterval(interval);
   }, [steps, apiKey]);
+
+  const goToMypage = () => {
+    navigate('/mypage', { state: { coins } });
+  };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-white">
