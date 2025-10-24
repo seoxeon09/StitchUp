@@ -22,7 +22,7 @@ const Store = () => {
 
   const handleBuy = (amount: number) => {
     alert(`밥 ${amount}개 구매 완료!`);
-    navigate('/', { state: { addedFood: amount } });
+    navigate('/mypage', { state: { addedFood: amount } });
   };
 
   return (

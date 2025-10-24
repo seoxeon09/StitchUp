@@ -11,13 +11,19 @@ const Mypage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [coins, setCoins] = useState(65200);
-  const [food, setFood] = useState(0);
-  const [feedCount, setFeedCount] = useState(0);
+  const [coins, setCoins] = useState<number>(location.state?.coins || 65200);
+  const [food, setFood] = useState<number>(0);
+  const [feedCount, setFeedCount] = useState<number>(0);
 
   useEffect(() => {
-    if (location.state?.addedFood) {
-      setFood((prev) => prev + location.state.addedFood);
+    if (location.state) {
+      const { addedFood, coins: newCoins } = location.state as {
+        addedFood?: number;
+        coins?: number;
+      };
+
+      if (addedFood) setFood((prev) => prev + addedFood);
+      if (newCoins !== undefined) setCoins(newCoins);
 
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -40,7 +46,7 @@ const Mypage = () => {
   };
 
   const goToShop = () => {
-    navigate('/shop');
+    navigate('/shop', { state: { coins } }); // 현재 coins 전달
   };
 
   return (
@@ -84,6 +90,10 @@ const Mypage = () => {
           >
             상점 가기
           </button>
+        </div>
+
+        <div className="absolute bottom-28 right-4 text-sm text-gray-500">
+          feedCount: {feedCount}
         </div>
       </div>
     </div>
