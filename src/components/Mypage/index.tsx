@@ -15,11 +15,10 @@ const Mypage = () => {
   const [food, setFood] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
 
-  // Shop에서 돌아올 때 food 증가
   useEffect(() => {
     if (location.state?.addedFood) {
       setFood((prev) => prev + location.state.addedFood);
-      // state 초기화해서 재실행 방지
+
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, navigate]);
@@ -41,13 +40,12 @@ const Mypage = () => {
   };
 
   const goToShop = () => {
-    navigate('/shop'); // 함수 전달하지 않음
+    navigate('/shop');
   };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-white">
       <div className="w-[390px] h-screen flex flex-col items-center relative p-4">
-        {/* 상단 코인/먹이 */}
         <div className="absolute top-4 right-4 text-right z-20">
           <div className="flex items-center justify-end gap-1">
             <span className="text-blue-600 font-bold text-lg">
@@ -60,7 +58,6 @@ const Mypage = () => {
           </div>
         </div>
 
-        {/* 캐릭터 + Round */}
         <div className="flex flex-col items-center justify-center flex-grow relative w-full">
           <img
             src={RoundImg}
@@ -74,7 +71,6 @@ const Mypage = () => {
           />
         </div>
 
-        {/* 버튼 */}
         <div className="flex flex-col gap-3 absolute bottom-10 w-full mb-6 z-10">
           <button
             onClick={handleFeed}
