@@ -2,79 +2,163 @@ import React, { useState, useRef, useEffect } from 'react';
 import Coin from '../../assets/Coin';
 import CircleImg from 'assets/Circle.png';
 
-const StepsPage = () => {
-  const [steps, setSteps] = useState(0);
-  const [coins, setCoins] = useState(0);
-  const [aiComment, setAiComment] = useState('');
+const StepsPage: React.FC = () => {
+  const [steps, setSteps] = useState<number>(0);
+  const [coins, setCoins] = useState<number>(0);
+  const [aiComment, setAiComment] = useState<string>('');
 
-  const lastAiRequestTime = useRef(0); // 마지막 AI 요청 시간
-  const apiKey = import.meta.env.VITE_AI_API_KEY; // .env에서 API 키 가져오기
+  const lastAiRequestTime = useRef<number>(0);
+  const apiKey = process.env.REACT_APP_AI_API_KEY;
+
+  const portRef = useRef<any | null>(null);
+  const readerRef = useRef<any | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      (async () => {
+        try {
+          if (readerRef.current) {
+            await readerRef.current.cancel();
+            readerRef.current.releaseLock?.();
+          }
+          if (portRef.current && portRef.current.readable) {
+            await portRef.current.close();
+          }
+        } catch (e) {}
+      })();
+    };
+  }, []);
+
+  const smoothIncrease = (increment: number) => {
+    if (increment <= 10) {
+      setSteps((prev) => {
+        const newTotal = prev + increment;
+        setCoins(newTotal * 3);
+        return newTotal;
+      });
+      return;
+    }
+
+    let i = 0;
+    const stepDelay = 60;
+    const timer = setInterval(() => {
+      if (!mountedRef.current) {
+        clearInterval(timer);
+        return;
+      }
+      i += 1;
+      setSteps((prev) => {
+        const newTotal = prev + 1;
+        setCoins(newTotal * 3);
+        return newTotal;
+      });
+      if (i >= increment) {
+        clearInterval(timer);
+      }
+    }, stepDelay);
+  };
 
   const connectSerial = async () => {
     try {
-      const port = await navigator.serial.requestPort();
+      const port = await (navigator as any).serial.requestPort();
+      portRef.current = port;
       await port.open({ baudRate: 115200 });
 
       const decoder = new TextDecoderStream();
       port.readable.pipeTo(decoder.writable);
       const reader = decoder.readable.getReader();
+      readerRef.current = reader;
 
-      while (true) {
+      while (mountedRef.current) {
         const { value, done } = await reader.read();
         if (done) break;
-        if (value) {
-          const trimmed = value.trim();
-          if (/^\d+$/.test(trimmed)) {
-            const increment = parseInt(trimmed);
+        if (!value) continue;
 
-            setSteps((prev) => {
-              const newTotal = prev + increment;
-              setCoins(newTotal * 3); // 코인 누적 반영
-              return newTotal;
-            });
-          }
+        const trimmed = String(value).trim();
+
+        console.log('[Serial] received:', trimmed);
+
+        if (/^\d+$/.test(trimmed)) {
+          const increment = parseInt(trimmed, 10);
+
+          smoothIncrease(increment);
+        } else {
+          console.log('[Serial] non-numeric message:', trimmed);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Serial connection error:', err);
     }
   };
 
   const requestAiComment = async (currentSteps: number) => {
-    try {
-      const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-        {
-          // 실제 AI API URL로 변경
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({ steps: currentSteps }),
-        }
-      );
+    if (!apiKey) {
+      console.error('API key가 없습니다.');
+      setAiComment('AI 키가 설정되지 않았습니다.');
+      return;
+    }
 
-      const data = await response.json();
-      setAiComment(data.comment);
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+      const body = {
+        contents: [
+          {
+            parts: [
+              {
+                text: `지금까지 ${currentSteps}걸음 걸었어요. 짧고 힘이 나는 응원 한 마디만 알려줘.`,
+              },
+            ],
+          },
+        ],
+      };
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        console.error('AI API 응답 에러:', resp.status, text);
+        setAiComment(`AI 요청 실패: ${resp.status}`);
+        return;
+      }
+
+      const data = await resp.json();
+      console.log('AI 응답 전체:', data);
+
+      const comment =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        data?.candidates?.[0]?.content?.[0]?.text ||
+        data?.output?.[0]?.content?.[0]?.text ||
+        'AI 코멘트가 없습니다.';
+
+      setAiComment(comment);
     } catch (err) {
       console.error('AI request error:', err);
       setAiComment('AI 코멘트를 불러오는 중 오류가 발생했어요.');
     }
   };
 
-  // 5분마다 AI 요청 체크
   useEffect(() => {
+    const checkInterval = 30 * 1000;
     const interval = setInterval(() => {
       const now = Date.now();
       if (now - lastAiRequestTime.current > 5 * 60 * 1000) {
-        // 5분
         requestAiComment(steps);
         lastAiRequestTime.current = now;
       }
-    }, 1000 * 30); // 30초마다 체크
+    }, checkInterval);
+
     return () => clearInterval(interval);
-  }, [steps]);
+  }, [steps, apiKey]);
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-white">
